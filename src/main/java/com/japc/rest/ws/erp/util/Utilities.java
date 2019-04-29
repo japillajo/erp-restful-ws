@@ -3,10 +3,13 @@ package com.japc.rest.ws.erp.util;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Date;
+import java.util.logging.Logger;
 
 import org.springframework.http.HttpStatus;
 
+import com.japc.rest.ws.erp.enumerator.LogTypeEnum;
 import com.japc.rest.ws.erp.model.Log;
+import com.japc.rest.ws.erp.model.LogPK;
 import com.japc.rest.ws.erp.model.User;
 import com.japc.rest.ws.erp.repository.LogJpaRepository;
 
@@ -21,14 +24,28 @@ public class Utilities {
 				+ ", method: " + method;
 	}
 
-	public static void saveLogToDb(String uuid, User requestUser, String logType, Object o, String logMethod,
-			Exception e, String logMethodReturn, LogJpaRepository logJpaRepository) {
-		StringWriter sw = new StringWriter();
-		PrintWriter pw = new PrintWriter(sw);
-		e.printStackTrace(pw);
+	public static void printSaveLog(Logger logger, String uuid, User requestUser, LogTypeEnum logType, Exception e,
+			String methodReturn, LogJpaRepository logJpaRepository) {
+		Log newLog = null;
+		LogPK logPk = new LogPK(uuid, new Date());
 
-		Log newLog = new Log(uuid, requestUser, new Date(), logType, o.getClass().getName(), logMethod, sw.toString(),
-				logMethodReturn);
+		switch (logType) {
+		case INFO:
+			logger.info(String.format("Successful process in : %s, Uuid: %s, Return: %s", logger.getName(), uuid,
+					methodReturn));
+			newLog = new Log(logPk, requestUser, logType.getType(), logger.getName(), methodReturn);
+			break;
+		case SEVERE:
+			logger.severe(String.format("Exception occur : %s, Uuid: %s, Return: %s", logger.getName(), uuid, e.getMessage()));
+			newLog = new Log(logPk, requestUser, logType.getType(), logger.getName(), getStackTrace(e));
+			break;
+		case WARNING:
+			logger.warning(
+					String.format("Warning in : %s, Uuid: %s, Return: %s", logger.getName(), uuid, methodReturn));
+			newLog = new Log(logPk, requestUser, logType.getType(), logger.getName(), methodReturn);
+			break;
+		}
+
 		logJpaRepository.save(newLog);
 	}
 

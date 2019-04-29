@@ -41,6 +41,11 @@ public class UserMenu implements Serializable {
 	public void setUserMenuEnabled(boolean userMenuEnabled) {
 		this.userMenuEnabled = userMenuEnabled;
 	}
+
+	@Override
+	public String toString() {
+		return "UserMenu [id=" + id + ", userMenuEnabled=" + userMenuEnabled + "]";
+	}
 	
 	
 

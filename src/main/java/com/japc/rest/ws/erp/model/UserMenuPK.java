@@ -63,4 +63,9 @@ public class UserMenuPK implements Serializable {
 		return true;
 	}
 
+	@Override
+	public String toString() {
+		return "UserMenuPK [userId=" + userId + ", menuId=" + menuId + "]";
+	}
+
 }

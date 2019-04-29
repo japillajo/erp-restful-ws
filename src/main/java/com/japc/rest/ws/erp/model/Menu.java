@@ -135,4 +135,10 @@ public class Menu implements Serializable, Comparable<Menu> {
 	public int compareTo(Menu m) {
 		return this.getMenuId().compareTo(m.getMenuId());
 	}
+
+	@Override
+	public String toString() {
+		return "Menu [menuId=" + menuId + ", module=" + module + ", menuName=" + menuName + ", menuUrl=" + menuUrl
+				+ ", menuIcon=" + menuIcon + ", menuDetail=" + menuDetail + ", menuState=" + menuState + "]";
+	}
 }

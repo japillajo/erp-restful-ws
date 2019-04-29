@@ -2,7 +2,6 @@ package com.japc.rest.ws.erp.model;
 
 import java.io.Serializable;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -94,6 +93,12 @@ public class Password implements Serializable {
 		} else if (!passwordId.equals(other.passwordId))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "Password [passwordId=" + passwordId + ", passwordState=" + passwordState + ", passwordText="
+				+ passwordText + ", user=" + user + "]";
 	}
 
 }

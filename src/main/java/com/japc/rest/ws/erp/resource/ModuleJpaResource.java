@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.logging.Logger;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -11,24 +13,38 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.japc.rest.ws.erp.dto.Detail;
+import com.japc.rest.ws.erp.dto.Header;
 import com.japc.rest.ws.erp.dto.Response;
+import com.japc.rest.ws.erp.enumerator.LogTypeEnum;
 import com.japc.rest.ws.erp.model.Menu;
 import com.japc.rest.ws.erp.model.Module;
 import com.japc.rest.ws.erp.model.Role;
+import com.japc.rest.ws.erp.model.User;
 import com.japc.rest.ws.erp.model.UserMenu;
+import com.japc.rest.ws.erp.repository.LogJpaRepository;
 import com.japc.rest.ws.erp.repository.MenuJpaRepository;
 import com.japc.rest.ws.erp.repository.ModuleJpaRepository;
 import com.japc.rest.ws.erp.repository.RoleJpaRepository;
+import com.japc.rest.ws.erp.repository.UserJpaRepository;
 import com.japc.rest.ws.erp.repository.UserMenuJpaRepository;
 import com.japc.rest.ws.erp.util.MessageCoreUtil;
 import com.japc.rest.ws.erp.util.Utilities;
 
 @CrossOrigin(origins = "${spring.cors.origin}")
 @RestController
+@RequestMapping("modules")
 public class ModuleJpaResource {
+
+	private static final Logger LOGGER = Logger.getLogger(ModuleJpaResource.class.getName());
+
+	private Header header = null;
+	private Detail detail = null;
+	private Response response = null;
 
 	@Autowired
 	private MessageCoreUtil msg;
@@ -40,14 +56,25 @@ public class ModuleJpaResource {
 	private ModuleJpaRepository moduleJpaRepository;
 
 	@Autowired
+	private UserJpaRepository userJpaRepository;
+
+	@Autowired
 	private UserMenuJpaRepository userMenuJpaRepository;
 
 	@Autowired
 	private RoleJpaRepository roleJpaRepository;
 
-	@GetMapping("/modules/admin/erp/{username}")
+	@Autowired
+	private LogJpaRepository logJpaRepository;
+
+	@GetMapping("/{username}/admin/erp")
 	public ResponseEntity<Response> getModulesByUser(@PathVariable String username) {
 		String returnCode = "0000";
+
+		String uuid = UUID.randomUUID().toString();
+
+		User requestUser = userJpaRepository.findById(username).get();
+
 		List<Module> newModules = new ArrayList<>();
 		List<Menu> menus = new ArrayList<>();
 		List<UserMenu> specialMenus = new ArrayList<>();
@@ -115,21 +142,31 @@ public class ModuleJpaResource {
 					Collections.sort(mod.getMenus());
 				}
 
-				Response response = new Response(HttpStatus.OK, returnCode, msg.getString("app.return." + returnCode),
-						ServletUriComponentsBuilder.fromCurrentRequest().toUriString(), newModules);
+				Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.INFO, null, newModules.toString(),
+						logJpaRepository);
+				header = new Header(uuid, HttpStatus.OK,
+						ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+				detail = new Detail(returnCode, msg.getString("app.return." + returnCode), newModules);
+				response = new Response(header, detail);
 				return new ResponseEntity<Response>(response, HttpStatus.OK);
 			} else {
 				returnCode = "9998"; // No records found
-				Response response = new Response(HttpStatus.NOT_FOUND, returnCode, msg.getString("app.return." + returnCode),
+				Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.WARNING, null,
+						msg.getString("app.return." + returnCode), logJpaRepository);
+				header = new Header(uuid, HttpStatus.NOT_FOUND,
 						ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+				detail = new Detail(returnCode, msg.getString("app.return." + returnCode), null);
+				response = new Response(header, detail);
 				return new ResponseEntity<Response>(response, HttpStatus.NOT_FOUND);
 			}
 		} catch (Exception e) {
-			System.err.println(Utilities.formatExceptionMessage(this, "getModulesByUser", e));
 			returnCode = "9999";
-			Response response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, returnCode,
-					msg.getString("app.return." + returnCode), Utilities.getStackTrace(e),
+			Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.SEVERE, e,
+					msg.getString("app.return." + returnCode), logJpaRepository);
+			header = new Header(uuid, HttpStatus.INTERNAL_SERVER_ERROR,
 					ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+			detail = new Detail(returnCode, msg.getString("app.return." + returnCode), Utilities.getStackTrace(e));
+			response = new Response(header, detail);
 			return new ResponseEntity<Response>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}

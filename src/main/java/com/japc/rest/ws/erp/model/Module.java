@@ -111,4 +111,10 @@ public class Module implements Serializable, Comparable<Module> {
 		return this.getModuleId().compareTo(m.getModuleId());
 	}
 
+	@Override
+	public String toString() {
+		return "Module [moduleId=" + moduleId + ", moduleDetail=" + moduleDetail + ", moduleName=" + moduleName
+				+ ", moduleIcon=" + moduleIcon + "]";
+	}
+
 }

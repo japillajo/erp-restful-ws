@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,7 +21,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.japc.rest.ws.erp.dto.Detail;
+import com.japc.rest.ws.erp.dto.Header;
 import com.japc.rest.ws.erp.dto.Response;
+import com.japc.rest.ws.erp.enumerator.LogTypeEnum;
 import com.japc.rest.ws.erp.enumerator.RolesEnum;
 import com.japc.rest.ws.erp.enumerator.UserStateEnum;
 import com.japc.rest.ws.erp.model.Password;
@@ -37,6 +41,12 @@ import com.japc.rest.ws.erp.util.Utilities;
 @RestController
 @RequestMapping("users")
 public class UserJpaResource {
+
+	private static final Logger LOGGER = Logger.getLogger(UserJpaResource.class.getName());
+
+	private Header header = null;
+	private Detail detail = null;
+	private Response response = null;
 
 	@Autowired
 	private MessageCoreUtil msg;
@@ -56,25 +66,39 @@ public class UserJpaResource {
 	@GetMapping("/{username}/admin/erp/{id}")
 	public ResponseEntity<Response> getUser(@PathVariable String username, @PathVariable String id) {
 		String returnCode = "0000";
+
+		String uuid = UUID.randomUUID().toString();
+
+		User requestUser = userJpaRepository.findById(username).get();
+
 		try {
 			Optional<User> user = userJpaRepository.findById(id);
 			if (user.isPresent()) {
-				Response response = new Response(HttpStatus.OK, returnCode, msg.getString("app.return." + returnCode),
-						ServletUriComponentsBuilder.fromCurrentRequest().toUriString(), user.get());
+				Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.INFO, null, user.get().toString(),
+						logJpaRepository);
+				header = new Header(uuid, HttpStatus.OK,
+						ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+				detail = new Detail(returnCode, msg.getString("app.return." + returnCode), user.get());
+				response = new Response(header, detail);
 				return new ResponseEntity<Response>(response, HttpStatus.OK);
 			} else {
 				returnCode = "9998"; // Resource not found
-				Response response = new Response(HttpStatus.NOT_FOUND, returnCode,
-						msg.getString("app.return." + returnCode),
+				Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.WARNING, null,
+						msg.getString("app.return." + returnCode), logJpaRepository);
+				header = new Header(uuid, HttpStatus.NOT_FOUND,
 						ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+				detail = new Detail(returnCode, msg.getString("app.return." + returnCode), null);
+				response = new Response(header, detail);
 				return new ResponseEntity<Response>(response, HttpStatus.NOT_FOUND);
 			}
 		} catch (Exception e) {
-			System.err.println(Utilities.formatExceptionMessage(this, "getUser", e));
 			returnCode = "9999";
-			Response response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, returnCode,
-					msg.getString("app.return." + returnCode), Utilities.getStackTrace(e),
+			Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.SEVERE, e,
+					msg.getString("app.return." + returnCode), logJpaRepository);
+			header = new Header(uuid, HttpStatus.INTERNAL_SERVER_ERROR,
 					ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+			detail = new Detail(returnCode, msg.getString("app.return." + returnCode), Utilities.getStackTrace(e));
+			response = new Response(header, detail);
 			return new ResponseEntity<Response>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -82,24 +106,39 @@ public class UserJpaResource {
 	@GetMapping("/{username}/admin/erp")
 	public ResponseEntity<Response> getAllUsers(@PathVariable String username) {
 		String returnCode = "0000";
+
+		String uuid = UUID.randomUUID().toString();
+
+		User requestUser = userJpaRepository.findById(username).get();
+
 		try {
 			List<User> users = userJpaRepository.findAll();
 			if (users.size() > 0) {
-				Response response = new Response(HttpStatus.OK, returnCode, msg.getString("app.return." + returnCode),
-						ServletUriComponentsBuilder.fromCurrentRequest().toUriString(), users);
+				Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.INFO, null, users.toString(),
+						logJpaRepository);
+				header = new Header(uuid, HttpStatus.OK,
+						ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+				detail = new Detail(returnCode, msg.getString("app.return." + returnCode), users);
+				response = new Response(header, detail);
 				return new ResponseEntity<Response>(response, HttpStatus.OK);
 			} else {
 				returnCode = "9998"; // Resource not found
-				Response response = new Response(HttpStatus.NOT_FOUND, returnCode, msg.getString("app.return." + returnCode),
+				Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.WARNING, null,
+						msg.getString("app.return." + returnCode), logJpaRepository);
+				header = new Header(uuid, HttpStatus.NOT_FOUND,
 						ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+				detail = new Detail(returnCode, msg.getString("app.return." + returnCode), null);
+				response = new Response(header, detail);
 				return new ResponseEntity<Response>(response, HttpStatus.NOT_FOUND);
 			}
 		} catch (Exception e) {
-			System.err.println(Utilities.formatExceptionMessage(this, "getAllUsers", e));
 			returnCode = "9999";
-			Response response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, returnCode,
-					msg.getString("app.return." + returnCode), Utilities.getStackTrace(e),
+			Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.SEVERE, e,
+					msg.getString("app.return." + returnCode), logJpaRepository);
+			header = new Header(uuid, HttpStatus.INTERNAL_SERVER_ERROR,
 					ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+			detail = new Detail(returnCode, msg.getString("app.return." + returnCode), Utilities.getStackTrace(e));
+			response = new Response(header, detail);
 			return new ResponseEntity<Response>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -107,24 +146,33 @@ public class UserJpaResource {
 	@PostMapping("/{username}/admin/erp")
 	public ResponseEntity<Response> createUser(@PathVariable String username, @RequestBody Password password) {
 		String returnCode = "0000";
-		User requestUser = userJpaRepository.findById(username).get();
+		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
 		String uuid = UUID.randomUUID().toString();
 
-		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+		User requestUser = username.equalsIgnoreCase("register") ? null : userJpaRepository.findById(username).get();
 
 		try {
 			User user = password.getUser();
 
 			if (userJpaRepository.findById(user.getUserId()).isPresent()) { // User's username already exists
 				returnCode = "0100";
-				Response response = new Response(HttpStatus.CONFLICT, returnCode, msg.getString("app.return." + returnCode),
+				Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.WARNING, null,
+						msg.getString("app.return." + returnCode), logJpaRepository);
+				header = new Header(uuid, HttpStatus.CONFLICT,
 						ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+				detail = new Detail(returnCode, msg.getString("app.return." + returnCode), null);
+				response = new Response(header, detail);
 				return new ResponseEntity<Response>(response, HttpStatus.CONFLICT);
 			}
 			if (userJpaRepository.findByUserEmail(user.getUserEmail()) != null) { // User's email already exists
 				returnCode = "0101";
-				Response response = new Response(HttpStatus.CONFLICT, returnCode, msg.getString("app.return." + returnCode),
+				Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.WARNING, null,
+						msg.getString("app.return." + returnCode), logJpaRepository);
+				header = new Header(uuid, HttpStatus.CONFLICT,
 						ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+				detail = new Detail(returnCode, msg.getString("app.return." + returnCode), null);
+				response = new Response(header, detail);
 				return new ResponseEntity<Response>(response, HttpStatus.CONFLICT);
 			}
 
@@ -141,17 +189,20 @@ public class UserJpaResource {
 					.toUri();
 //			return ResponseEntity.created(uri).build();
 			returnCode = "0001";
-			Response response = new Response(HttpStatus.CREATED, returnCode, msg.getString("app.return." + returnCode),
-					ServletUriComponentsBuilder.fromCurrentRequest().toUriString(), uri);
+			Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.INFO, null, uri.toString(), logJpaRepository);
+			header = new Header(uuid, HttpStatus.CREATED,
+					ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+			detail = new Detail(returnCode, msg.getString("app.return." + returnCode), uri);
+			response = new Response(header, detail);
 			return new ResponseEntity<Response>(response, HttpStatus.CREATED);
 		} catch (Exception e) {
-			System.err.println(Utilities.formatExceptionMessage(this, "createUser", e));
-			Utilities.saveLogToDb(uuid, requestUser, "ERROR", this, "createUser", e, "", logJpaRepository);
-
 			returnCode = "9999";
-			Response response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, returnCode,
-					msg.getString("app.return." + returnCode), Utilities.getStackTrace(e),
+			Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.SEVERE, e,
+					msg.getString("app.return." + returnCode), logJpaRepository);
+			header = new Header(uuid, HttpStatus.INTERNAL_SERVER_ERROR,
 					ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+			detail = new Detail(returnCode, msg.getString("app.return." + returnCode), Utilities.getStackTrace(e));
+			response = new Response(header, detail);
 			return new ResponseEntity<Response>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -160,6 +211,11 @@ public class UserJpaResource {
 	public ResponseEntity<Response> updateUser(@PathVariable String username, @RequestBody Password password) {
 		String returnCode = "0000";
 		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
+		String uuid = UUID.randomUUID().toString();
+
+		User requestUser = userJpaRepository.findById(username).get();
+
 		try {
 			returnCode = "0003";
 			User userUpdated = userJpaRepository.save(password.getUser());
@@ -174,15 +230,20 @@ public class UserJpaResource {
 				passwordJpaRepository.save(password);
 
 			}
-			Response response = new Response(HttpStatus.OK, returnCode, msg.getString("app.return." + returnCode),
-					ServletUriComponentsBuilder.fromCurrentRequest().toUriString(), userUpdated);
+			Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.INFO, null, userUpdated.toString(),
+					logJpaRepository);
+			header = new Header(uuid, HttpStatus.OK, ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+			detail = new Detail(returnCode, msg.getString("app.return." + returnCode), userUpdated);
+			response = new Response(header, detail);
 			return new ResponseEntity<Response>(response, HttpStatus.OK);
 		} catch (Exception e) {
-			System.err.println(Utilities.formatExceptionMessage(this, "updateUser", e));
 			returnCode = "9999";
-			Response response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, returnCode,
-					msg.getString("app.return." + returnCode), Utilities.getStackTrace(e),
+			Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.SEVERE, e,
+					msg.getString("app.return." + returnCode), logJpaRepository);
+			header = new Header(uuid, HttpStatus.INTERNAL_SERVER_ERROR,
 					ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+			detail = new Detail(returnCode, msg.getString("app.return." + returnCode), Utilities.getStackTrace(e));
+			response = new Response(header, detail);
 			return new ResponseEntity<Response>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -191,20 +252,30 @@ public class UserJpaResource {
 	public ResponseEntity<Response> disableUser(@PathVariable String username, @PathVariable String id,
 			@RequestBody User user) {
 		String returnCode = "0000";
+
+		String uuid = UUID.randomUUID().toString();
+
+		User requestUser = userJpaRepository.findById(username).get();
+
 		try {
 			returnCode = "0005";
 			User userToDisable = userJpaRepository.findById(id).get();
 			userToDisable.setUserState(UserStateEnum.DISABLED.getState());
 			userJpaRepository.save(userToDisable);
-			Response response = new Response(HttpStatus.OK, returnCode, msg.getString("app.return." + returnCode),
-					ServletUriComponentsBuilder.fromCurrentRequest().toUriString(), userToDisable);
+			Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.INFO, null, userToDisable.toString(),
+					logJpaRepository);
+			header = new Header(uuid, HttpStatus.OK, ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+			detail = new Detail(returnCode, msg.getString("app.return." + returnCode), userToDisable);
+			response = new Response(header, detail);
 			return new ResponseEntity<Response>(response, HttpStatus.OK);
 		} catch (Exception e) {
-			System.err.println(Utilities.formatExceptionMessage(this, "disableUser", e));
 			returnCode = "9999";
-			Response response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, returnCode,
-					msg.getString("app.return." + returnCode), Utilities.getStackTrace(e),
+			Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.SEVERE, e,
+					msg.getString("app.return." + returnCode), logJpaRepository);
+			header = new Header(uuid, HttpStatus.INTERNAL_SERVER_ERROR,
 					ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+			detail = new Detail(returnCode, msg.getString("app.return." + returnCode), Utilities.getStackTrace(e));
+			response = new Response(header, detail);
 			return new ResponseEntity<Response>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -212,6 +283,11 @@ public class UserJpaResource {
 	@DeleteMapping("/{username}/admin/erp/{id}")
 	public ResponseEntity<Response> deleteUser(@PathVariable String username, @PathVariable String id) {
 		String returnCode = "0000";
+
+		String uuid = UUID.randomUUID().toString();
+
+		User requestUser = userJpaRepository.findById(username).get();
+
 		try {
 			returnCode = "0002";
 			List<Password> passwordsToDelete = passwordJpaRepository.findAllByUsername(id);
@@ -221,15 +297,20 @@ public class UserJpaResource {
 
 			User userToDelete = userJpaRepository.findById(id).get();
 			userJpaRepository.delete(userToDelete);
-			Response response = new Response(HttpStatus.OK, returnCode, msg.getString("app.return." + returnCode),
-					ServletUriComponentsBuilder.fromCurrentRequest().toUriString(), userToDelete);
+			Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.INFO, null, userToDelete.toString(),
+					logJpaRepository);
+			header = new Header(uuid, HttpStatus.OK, ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+			detail = new Detail(returnCode, msg.getString("app.return." + returnCode), userToDelete);
+			response = new Response(header, detail);
 			return new ResponseEntity<Response>(response, HttpStatus.OK);
 		} catch (Exception e) {
-			System.err.println(Utilities.formatExceptionMessage(this, "deleteUser", e));
 			returnCode = "9999";
-			Response response = new Response(HttpStatus.INTERNAL_SERVER_ERROR, returnCode,
-					msg.getString("app.return." + returnCode), Utilities.getStackTrace(e),
+			Utilities.printSaveLog(LOGGER, uuid, requestUser, LogTypeEnum.SEVERE, e,
+					msg.getString("app.return." + returnCode), logJpaRepository);
+			header = new Header(uuid, HttpStatus.INTERNAL_SERVER_ERROR,
 					ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+			detail = new Detail(returnCode, msg.getString("app.return." + returnCode), Utilities.getStackTrace(e));
+			response = new Response(header, detail);
 			return new ResponseEntity<Response>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}

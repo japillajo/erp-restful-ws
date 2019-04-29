@@ -1,16 +1,13 @@
 package com.japc.rest.ws.erp.model;
 
 import java.io.Serializable;
-import java.util.Date;
 
 import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 
 /**
  * The persistent class for the [menu] database table.
@@ -21,55 +18,49 @@ import javax.persistence.TemporalType;
 public class Log implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-	@Id
-	@Column(name = "LOG_ID", nullable = false)
-	private String logId;
+	@EmbeddedId
+	private LogPK id;
 
 	@ManyToOne
 	@JoinColumn(name = "USER_ID")
 	private User user;
 
-	@Column(name = "LOG_FECHA_HORA", nullable = false)
-	@Temporal(TemporalType.TIMESTAMP)
-	private Date logFechaHora;
-
 	@Column(name = "LOG_TYPE", nullable = false, length = 20)
 	private String logType;
-	
+
 	@Column(name = "LOG_CLASS", nullable = false, length = 100)
 	private String logClass;
 
-	@Column(name = "LOG_METHOD", nullable = false, length = 50)
-	private String logMethod;
+	@Column(name = "LOG_RETURN", nullable = true, columnDefinition = "TEXT")
+	private String logReturn;
 
-	@Column(name = "LOG_STACK_TRACE", nullable = true, columnDefinition="TEXT")
-	private String logStackTrace;
-
-	@Column(name = "LOG_METHOD_RETURN", nullable = true, columnDefinition="TEXT")
-	private String logMethodReturn;
+	public Log(LogPK id, User user, String logType, String logClass, String logReturn) {
+		super();
+		this.id = id;
+		this.user = user;
+		this.logType = logType;
+		this.logClass = logClass;
+		this.logReturn = logReturn;
+	}
 
 	protected Log() {
 	}
 
-	public Log(String logId, User user, Date logFechaHora, String logType, String logClass, String logMethod,
-			String logStackTrace, String logMethodReturn) {
-		super();
-		this.logId = logId;
-		this.user = user;
-		this.logFechaHora = logFechaHora;
-		this.logType = logType;
-		this.logClass = logClass;
-		this.logMethod = logMethod;
-		this.logStackTrace = logStackTrace;
-		this.logMethodReturn = logMethodReturn;
+
+	public LogPK getId() {
+		return id;
 	}
 
-	public String getLogId() {
-		return logId;
+	public void setId(LogPK id) {
+		this.id = id;
 	}
 
-	public void setLogId(String logId) {
-		this.logId = logId;
+	public String getLogReturn() {
+		return logReturn;
+	}
+
+	public void setLogReturn(String logReturn) {
+		this.logReturn = logReturn;
 	}
 
 	public User getUser() {
@@ -78,14 +69,6 @@ public class Log implements Serializable {
 
 	public void setUser(User user) {
 		this.user = user;
-	}
-
-	public Date getLogFechaHora() {
-		return logFechaHora;
-	}
-
-	public void setLogFechaHora(Date logFechaHora) {
-		this.logFechaHora = logFechaHora;
 	}
 
 	public String getLogType() {
@@ -104,37 +87,15 @@ public class Log implements Serializable {
 		this.logClass = logClass;
 	}
 
-	public String getLogMethod() {
-		return logMethod;
-	}
-
-	public void setLogMethod(String logMethod) {
-		this.logMethod = logMethod;
-	}
-
-	public String getLogStackTrace() {
-		return logStackTrace;
-	}
-
-	public void setLogStackTrace(String logStackTrace) {
-		this.logStackTrace = logStackTrace;
-	}
-
-	public String getLogMethodReturn() {
-		return logMethodReturn;
-	}
-
-	public void setLogMethodReturn(String logMethodReturn) {
-		this.logMethodReturn = logMethodReturn;
-	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((logId == null) ? 0 : logId.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		return result;
 	}
+
 
 	@Override
 	public boolean equals(Object obj) {
@@ -145,10 +106,10 @@ public class Log implements Serializable {
 		if (getClass() != obj.getClass())
 			return false;
 		Log other = (Log) obj;
-		if (logId == null) {
-			if (other.logId != null)
+		if (id == null) {
+			if (other.id != null)
 				return false;
-		} else if (!logId.equals(other.logId))
+		} else if (!id.equals(other.id))
 			return false;
 		return true;
 	}
